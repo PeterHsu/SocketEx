@@ -119,7 +119,7 @@ namespace SocketEx
                 if (m_autoReConnect && connectOnce) m_Connect();
             }
         }
-        protected void Send(byte[] msg)
+        public void Send(byte[] msg)
         {
             SocketAsyncEventArgs args = new SocketAsyncEventArgs();
             args.SetBuffer(msg, 0, msg.Length);
