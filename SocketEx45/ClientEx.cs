@@ -43,7 +43,7 @@ namespace SocketEx
         {
             if (m_socket != null)
             {
-                lock (m_socket)
+                lock (lockRef)
                 {
                     m_socket.Close(); m_socket.Dispose(); m_socket = null;
                 }
@@ -53,7 +53,7 @@ namespace SocketEx
             SocketAsyncEventArgs args = new SocketAsyncEventArgs();
             args.RemoteEndPoint = m_endPoint;
             args.Completed += OnConnectCompleted;
-            lock(m_socket)
+            lock(lockRef)
             {
                 // 如果是false，表示已同步執行連線作業完成，不會觸發Completed事件
                 if (!m_socket.ConnectAsync(args)) OnConnectCompleted(null, args);
@@ -67,7 +67,7 @@ namespace SocketEx
                 SocketAsyncEventArgs args = new SocketAsyncEventArgs();
                 args.SetBuffer(new Byte[Int16.MaxValue], 0, Int16.MaxValue);
                 args.Completed += OnReceiveCompleted;
-                lock (m_socket)
+                lock (lockRef)
                 {
                     if (!m_socket.ReceiveAsync(args)) OnReceiveCompleted(null,args);
                 }
@@ -93,9 +93,12 @@ namespace SocketEx
                 Array.Copy(e.Buffer, e.Offset, buffer, 0, buffer.Length);
                 Array.Clear(e.Buffer, 0, e.Buffer.Length);
                 OnReceiveBase(buffer);
-                lock (m_socket)
+                lock (lockRef)
                 {
-                    if (!m_socket.ReceiveAsync(e)) OnReceiveCompleted(null, e);
+                    if (m_socket != null)
+                    {
+                        if (!m_socket.ReceiveAsync(e)) OnReceiveCompleted(null, e);
+                    }
                 }
             }
             else
@@ -122,7 +125,7 @@ namespace SocketEx
             args.SetBuffer(msg, 0, msg.Length);
             args.UserToken = msg;
             args.Completed += OnSendCompleted;
-            lock (m_socket)
+            lock (lockRef)
             {
                 if (!m_socket.SendAsync(args)) OnSendCompleted(null, args);
             }
@@ -142,13 +145,14 @@ namespace SocketEx
             {
                 if (disposing)
                 {
-                    lock (m_socket)
+                    lock (lockRef)
                     {
                         if (m_socket != null)
                         {
                             m_socket.Close();
                             m_socket.Dispose();
                             m_socket = null;
+                            OnStateChange?.Invoke(0, "連線中斷");
                         }
                     }
                 }
